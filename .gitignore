@@ -118,7 +118,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+/sitetop
 
 # mypy
 .mypy_cache/
@@ -129,4 +129,8 @@ dmypy.json
 .pyre/
 
 # my files.
-./images/
+images/
+.h5
+h5_max_contour/
+h5_projected/
+h5/

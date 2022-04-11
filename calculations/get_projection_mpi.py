@@ -1,176 +1,248 @@
-from operator import pos
-
+from typing import Tuple
+from xmlrpc.client import Boolean
+from mpi4py import MPI
 import h5py
 import numpy as np
+
 import sys
-import scipy.stats as st
+sys.path.append('..')
+import functions.calc_mcf as calc_mcf
+import functions.calc_projection as cp
+import functions.calc_unit_conversion as uc
+import functions.calc_orientation as calc_ori
 
-import calc_unit_conversion as uc
-import calc_projection as cp
-
-import math
-from mpi4py import MPI
-
-
-
+from operator import pos
+from os.path import exists
 
 
-#%% initialize MPI
+
+
+
+
+
+# initialize MPI
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
 
-print("size is %d " % size)
+print(f"Number of threads is {size}.")
 
-def readData(file):
+
+def read_data(file):
     with h5py.File(file, 'r') as data:
         myData = {key: data[key][()] for key in data.keys()}
     return myData
 
 
+def main(file: str, n_rand: int, method: str) -> None:
+    """
+        Do projection for the given file.
 
-def main(argv):
-    
-        
-    
-    # create projection angles.
+        The file should be the output of 'get_data_in_contour.py'
+
+
+        :param file: path to the h5 file.
+        :param n_rand: number of projections.
+        :param method: either be 'fib', or 'ran', define the way to do the projection.
+    """
+
+    # set random seed
     np.random.seed(0)
 
-    n_rand = int(argv[0]) # number of projection directions
+    if not exists(file):
+        print("file {file} not exist.")
+        return
     
-    if str(argv[1]) == "fib":
+    if method == "fib":
         print("generating uniform projection")
         x_rand_, y_rand_, z_rand_ = cp.fibonacci_sphere(n_rand)
 
-    else:
+    elif method == "ran":
         print("generating random projection")
         x_rand_, y_rand_, z_rand_ = cp.random_unit_vector(n_rand)
-    
+
+    else:
+        print("arg should be either 'ran' or 'fib'.")
+        return
+
+    # number of projection per processor
     nRandPerProc = int(n_rand/size)
 
+    # index of each processor.
     init = rank*nRandPerProc
     term = (rank+1)*nRandPerProc
 
-    print(rank, nRandPerProc)
+    # assign los to different threads
     comm.Barrier()
-
     x_rand = x_rand_[init:term]
     y_rand = y_rand_[init:term]
     z_rand = z_rand_[init:term]
 
     # Read data
-    # fileNames = ["./half_scale_restart/g1041_9015_data_in_contour_checkingVersion.h5", "./half_scale_restart/g1040_0016_data_in_contour_checkingVersion.h5"]
-    fileNames = ["./half_scale_restart/g1040_0016_data_in_contour_new_contour_32.h5" ]#, "./half_scale_restart/g1041_9015_data_in_contour_new_contour_32.h5"]
 
-    for fullPATH in fileNames:
+    # MPI read data.
+    data = None
 
+    if rank == 0:
+        print(rank, f"Reading data from {file}")
+        data = read_data(file)
+        print(rank, "Finish reading data")
+        for key in data.keys():
+            print(key, type(data[key]))
+
+    # boardcast data.
+    comm.Barrier()
+    data = comm.bcast(data, root=0)
+    comm.Barrier()
+
+    #         np.array(all_cloud_orientation), np.array(all_b_field_orientation), \
+    #         np.array(all_mcf), np.array(all_mcf_bin), np.array(all_mcf_slope), np.array(all_mcf_area), \
+    #         np.array(all_aspect_ratio), np.array(all_cloud_masses), \
+    #         np.array(all_min_den), np.array(all_max_den), \
+    #         np.array(binned_den), np.array(all_stoke_Q_map), np.array(all_stoke_U_map)
+    cloud_orientation, b_orientation, \
+        mcf, mcf_bin, mcf_slope, mcf_area, \
+        aspect_ratio, cloud_mass, min_den, max_den, \
+        binned_den, binned_stoke_Q, binned_stoke_U \
+        = calc_all_projections(data, x_rand, y_rand, z_rand)
+
+
+    # LOS 
+    xRandRecvbuf = comm.gather(x_rand, root=0)
+    yRandRecvbuf = comm.gather(y_rand, root=0)
+    zRandRecvbuf = comm.gather(z_rand, root=0)
+    # Orientation
+    cloudThetaRecvbuf = comm.gather(cloud_orientation, root=0)
+    posBThetaRecvbuf = comm.gather(b_orientation, root=0)
+    # MCF
+    MCFRecvbuf = comm.gather(mcf, root=0)
+    MCFBinsRecvbuf = comm.gather(mcf_bin, root=0)
+    MCFSlopeRecvbuf = comm.gather(mcf_slope, root=0)
+    MCFAreaRecvbuf = comm.gather(mcf_area, root=0)
+    # Cloud properties
+    cloudAspectRecvbuf = comm.gather(aspect_ratio, root=0)
+    cloudMassRecvbuf = comm.gather(cloud_mass, root=0)
+    minDenRecvbuf = comm.gather(min_den, root=0)
+    maxDenRecvbuf = comm.gather(max_den, root=0)
+    # Projection map
+    DensityRecvbuf = comm.gather(binned_den, root=0)
+    StokeQRecvbuf = comm.gather(binned_stoke_Q, root=0)
+    StokeURecvbuf = comm.gather(binned_stoke_Q, root=0)
     
-        # MPI read data.
-        data = None
+    
+    # Create output file.
+    if rank == 0:
+        # LOS
+        xRandRecvbuf = np.reshape(xRandRecvbuf, n_rand)
+        yRandRecvbuf = np.reshape(yRandRecvbuf, n_rand)
+        zRandRecvbuf = np.reshape(zRandRecvbuf, n_rand)
+        # Orientation
+        cloudThetaRecvbuf = np.reshape(cloudThetaRecvbuf, n_rand)
+        posBThetaRecvbuf = np.reshape(posBThetaRecvbuf, n_rand)
+        # MCF 
+        MCFRecvbuf = np.reshape(MCFRecvbuf, n_rand)
+        MCFBinsRecvbuf = np.reshape(MCFBinsRecvbuf, n_rand)
+        MCFSlopeRecvbuf = np.reshape(MCFSlopeRecvbuf, n_rand)
+        MCFAreaRecvbuf = np.reshape(MCFAreaRecvbuf, n_rand)
+        # Cloud properties
+        cloudAspectRecvbuf = np.reshape(cloudAspectRecvbuf, n_rand)
+        cloudMassRecvbuf = np.reshape(cloudMassRecvbuf, n_rand)
+        minDenRecvbuf = np.reshape(minDenRecvbuf, n_rand)
+        maxDenRecvbuf = np.reshape(maxDenRecvbuf, n_rand)
+        # Projection map
+        DensityRecvbuf = np.reshape(DensityRecvbuf, n_rand)
+        StokeQRecvbuf = np.reshape(StokeQRecvbuf, n_rand)
+        StokeURecvbuf = np.reshape(StokeURecvbuf, n_rand)
 
-        if rank == 0:
-            print(rank, "Reading data from " + fullPATH)
-            data = readData(fullPATH)
-            print(rank, "Finish reading data")
-            for key in data.keys():
-                print(key, type(data[key]))
-        
-        comm.Barrier()
-        
-        # boardcast data.
-        data = comm.bcast(data, root = 0)
-        
-        comm.Barrier()
+        print("Writing output file ...")
 
-        cloudOri, bOri, mcfArea, mcfSlope, aspect, min_den, max_den, cloud_masses, dense_masses = calcAll(data, x_rand, y_rand, z_rand)
+        # First file storing 1d projected data
+        with h5py.File(file.replace(".h5", f"_{n_rand:d}_{method}_main.h5").replace('/h5/', '/h5_projected/'), 'w-') as write_data:
 
+            # Parameters TODO
+            # LOS
+            write_data.create_dataset('los_x', data=xRandRecvbuf)
+            write_data.create_dataset('los_y', data=yRandRecvbuf)
+            write_data.create_dataset('los_z', data=zRandRecvbuf)
+            # Orientation
+            write_data.create_dataset('cloud_orientation', data=cloudThetaRecvbuf)
+            write_data.create_dataset('b_orientation', data=posBThetaRecvbuf)
+            # MCF
+            write_data.create_dataset('mcf_slope', data=MCFSlopeRecvbuf)
+            write_data.create_dataset('mcf_area', data=MCFAreaRecvbuf)
+            # Cloud properties
+            write_data.create_dataset('cloud_aspect', data=cloudAspectRecvbuf)
+            write_data.create_dataset('cloud_mass', data=cloudMassRecvbuf)
+            write_data.create_dataset('min_den', data=minDenRecvbuf)
+            write_data.create_dataset('max_den', data=maxDenRecvbuf)
+            write_data.close()
 
-        xRandRecvbuf = comm.gather(x_rand, root=0)
-        yRandRecvbuf = comm.gather(y_rand, root=0)
-        zRandRecvbuf = comm.gather(z_rand, root=0)
-        cloudAspectRecvbuf = comm.gather(aspect, root=0)
-        cloudThetaRecvbuf = comm.gather(cloudOri, root=0)
-        posBThetaRecvbuf = comm.gather(bOri, root=0)
-        MCFSlopeRecvbuf = comm.gather(mcfSlope, root=0)
-        MCFAreaRecvbuf = comm.gather(mcfArea, root=0)
-        minDenRecvbuf = comm.gather(min_den, root = 0)
-        maxDenRecvbuf = comm.gather(max_den, root = 0)
-        cloudMassRecvbuf = comm.gather(cloud_masses, root = 0)
-        denseMassRecvbufs = [comm.gather(dense_mass, root = 0) for dense_mass in dense_masses]
+        # Second file, storing the projected map.
+        with h5py.File(file.replace(".h5", f"_{n_rand:d}_{method}_map.h5").replace('/h5/', '/h5_projected/'), 'w-') as write_data:
+            # projection maps
+            write_data.create_dataset('den', DensityRecvbuf)
+            write_data.create_dataset('stoke_Q', StokeQRecvbuf)
+            write_data.create_dataset('stoke_U', StokeURecvbuf)
+            write_data.close()
+            
+        # third file, storing the mcf
+        with h5py.File(file.replace(".h5", f"_{n_rand:d}_{method}_mcf.h5").replace('/h5/', '/h5_projected/'), 'w-') as write_data:
+            # mcfs.
+            write_data.create_dataset('mcf', MCFRecvbuf)
+            write_data.create_dataset('mcf_bin', MCFBinsRecvbuf)
+            write_data.close()
+    
+def calc_all_projections(
+    data: dict, losX: np.ndarray, losY: np.ndarray, losZ: np.ndarray
+) -> Tuple:
+    """
+        calc projections for a lot of line of sight.
 
+        :param data: dictionary of max_contour output
+        :param losX: los vector x components
+        :param losY: los vector y components
+        :param losZ: los vector z components
 
-        if rank==0:
+        :return:  tubple of the following parameters
+                    (
+                        np.array(all_cloud_orientation), 
+                        np.array(all_b_field_orientation),
+                        np.array(all_mcf), 
+                        np.array(all_mcf_bin), 
+                        np.array(all_mcf_slope), 
+                        np.array(all_mcf_area),
+                        np.array(all_aspect_ratio), 
+                        np.array(all_cloud_masses),
+                        np.array(all_min_den), 
+                        np.array(all_max_den),
+                        np.array(binned_den), 
+                        np.array(all_stoke_Q_map), 
+                        np.array(all_stoke_U_map)
+                    )
+    """
 
-            xRandRecvbuf = np.reshape(xRandRecvbuf, n_rand)
-            yRandRecvbuf = np.reshape(yRandRecvbuf ,n_rand)
-            zRandRecvbuf = np.reshape(zRandRecvbuf ,n_rand)
-            cloudAspectRecvbuf = np.reshape(cloudAspectRecvbuf,n_rand)
-            cloudThetaRecvbuf = np.reshape(cloudThetaRecvbuf ,n_rand)
-            posBThetaRecvbuf = np.reshape(posBThetaRecvbuf ,n_rand)
-            MCFSlopeRecvbuf = np.reshape(MCFSlopeRecvbuf ,n_rand)
-            MCFAreaRecvbuf = np.reshape(MCFAreaRecvbuf, n_rand)
-            minDenRecvbuf = np.reshape(minDenRecvbuf, n_rand)
-            maxDenRecvbuf = np.reshape(maxDenRecvbuf, n_rand)
-            cloudMassRecvbuf = np.reshape(cloudMassRecvbuf, n_rand)
-            denseMassRecvbufs = [np.reshape(denseMassRecvbuf, n_rand) for denseMassRecvbuf in denseMassRecvbufs]
-
-
-            print("Write output file ...")
-
-            with h5py.File(fullPATH.replace(".h5", f"_calculated_fib_with_{n_rand:d}_DR_SF_nT.h5"), 'w-') as write_data:
-                    
-                # Parameters TODO
-                # cloudAspect = []
-                # cloudTheta = []
-                # losBStr = []
-                # posBStr = []
-                # posBTheta = []
-                # MCFSlope = []
-
-                write_data.create_dataset('losx', data = xRandRecvbuf)
-                write_data.create_dataset('losy', data = yRandRecvbuf)
-                write_data.create_dataset('losz', data = zRandRecvbuf)
-                write_data.create_dataset('cloudAspect', data = cloudAspectRecvbuf)
-                write_data.create_dataset('cloudTheta', data = cloudThetaRecvbuf)
-                write_data.create_dataset('posBTheta', data = posBThetaRecvbuf)
-                write_data.create_dataset('MCFSlope', data = MCFSlopeRecvbuf)
-                write_data.create_dataset('MCFArea', data = MCFAreaRecvbuf)
-                write_data.create_dataset('minDen', data = minDenRecvbuf)
-                write_data.create_dataset('maxDen', data = maxDenRecvbuf)
-                write_data.create_dataset('cloud_mass', data = cloudMassRecvbuf)
-                dense_thresholds = [number_den_H2_per_cm2_to_column_den_Msun_per_pc2(b_code_to_muG(7.2945)/1.1e-21, mu = 1.37),
-                                    220.92, 221.18, 277.60, 294.94, 252.71, 265.24]
-                
-                for dense_threshold, denseMassRecvbuf in zip(dense_thresholds, denseMassRecvbufs):
-                    key = f"dense_mass_{dense_threshold:.2f}"
-                    write_data.create_dataset(key, data = denseMassRecvbuf)                
-                    
-                write_data.close()
-
-def calcAll(data, losX, losY, losZ):
-
+    # TODO paramters to store #################
     # Orientation of the cloud
-    cloudOri = []
-
+    all_cloud_orientation = []
+    all_aspect_ratio = []
     # Orientation of magnetic field.
-    bOri_weighted_2D = []
-
-    mcfSlope = []
-    mcfArea = []
-    aspectRatio = []
-
+    all_b_field_orientation = []
+    # for mcf
+    all_mcf = []
+    all_mcf_bin = []
+    all_mcf_slope = []
+    all_mcf_area = []
     # min and max column density
-    min_den = []
-    max_den = []
-
+    all_min_den = []
+    all_max_den = []
     # Cloud and dense threshold
-    cloud_threshold = 2*15 # extinction_mag_to_column_denisty_Msun_per_pc2(2, mu = 2.3)
-    # dense_threshold = 129 # extinction_mag_to_column_denisty_Msun_per_pc2(8, mu = 2.3)
-    dense_thresholds = [number_den_H2_per_cm2_to_column_den_Msun_per_pc2(b_code_to_muG(7.2945)/1.1e-21, mu = 1.37),
-                    220.92, 221.18, 277.60, 294.94, 252.71, 265.24]
-    cloud_masses = []
-    dense_masses = [[] for i in dense_thresholds]
+    all_cloud_masses = []
+    # 2D data map
+    all_column_density_map = []
+    all_stoke_Q_map = []
+    all_stoke_U_map = []
+    ###########################################
 
     cnt = 0
     # Calculate all step for each los
@@ -178,114 +250,52 @@ def calcAll(data, losX, losY, losZ):
 
         print(f"rank {rank:2d}, cnt = {cnt:4d}")
         cnt += 1
-        theta, phi = cartToSph(*los)
+        theta, phi = uc.cartToSph(*los)
         sys.stdout.flush()
 
-        # los = (losX[53], losY[53], losZ[53])
+        # TODO 1 Rotate data py lOS ###########################################
+        x, y, z = cp.rotate_3d(data['bx'], data['by'], data['bz'], *los)
+        bx, by, bz = cp.rotate_3d(data['bx'], data['by'], data['bz'], *los)
+        #######################################################################
 
-        # Rotate data py lOS
-        xRot, yRot, zRot = rotate_3d(data['x'], data['y'], data['z'], *los)
-        BxRot, ByRot, BzRot = rotate_3d(data['bx'], data['by'], data['bz'], *los)
+        cloud_orientation, b_field_orientation,\
+            mcf, mcf_bin, mcf_slope, mcf_area, \
+            aspect_ratio, cloud_mass, min_den, max_den,\
+            binned_den, binned_stoke_Q, binned_stoke_U = \
+            cp.projection(data['den'], x, y, z, bx, by, bz, los)
 
+        # TODO paramters to store #################
+        # Orientation of the cloud
+        all_cloud_orientation += [cloud_orientation]
+        all_aspect_ratio += [aspect_ratio]
+        # Orientation of magnetic field.
+        all_b_field_orientation += [b_field_orientation]
+        # for mcf
+        all_mcf += [mcf]
+        all_mcf_bin += [mcf_bin]
+        all_mcf_slope += [mcf_slope]
+        all_mcf_area += [mcf_area]
+        # min and max column density
+        all_min_den += [min_den]
+        all_max_den += [max_den]
+        # Cloud and dense threshold
+        all_cloud_masses += [cloud_mass]
+        # 2D data map
+        all_column_density_map += [binned_den]
+        all_stoke_Q_map += [binned_stoke_Q]
+        all_stoke_U_map += [binned_stoke_U]
+        ###########################################
 
-        ###################################
-        ### Magnetic field
-        ###################################
-        # Calculate stoke parameter of Magnetic field.
-        stoke_I, stoke_Q, stoke_U, stoke_phi = calcStoke(BxRot, ByRot)
-        stoke_phi = None
-
-
-        # # weighted stoke parameter
-        weighted_stoke_Q = stoke_Q * data['density']
-        weighted_stoke_U = stoke_U * data['density']
-        # weighted_stoke_I = stoke_I * data['density']
-
-
-        # Create bins data
-        # cell cneter cooridinate.
-        dx = 10/480
-        x = np.linspace(-10+dx/2, 10-dx/2, 960)
-        y = x.copy()
-        X, Y = np.meshgrid(x, y)
-
-        # boundary cooridinates
-        binX = np.linspace(-10, 10, 961)
-        binY = binX.copy()
-
-        # bin projected data into 2d
-        # (sum_i den) 
-        binsDen = st.binned_statistic_2d(yRot, xRot, data['density'], statistic="sum", bins=[binX, binY])[0] * dx
-
-
-        # (sum_i phi_i * den_i) 
-        binsQ_weighted_2D = st.binned_statistic_2d(yRot, xRot, weighted_stoke_Q, statistic="sum", bins=[binX, binY])[0]
-        binsQ_weighted_2D = np.divide(binsQ_weighted_2D, binsDen, out = np.zeros_like(binsQ_weighted_2D), where = binsDen != 0)
-
-        binsU_weighted_2D = st.binned_statistic_2d(yRot, xRot, weighted_stoke_U, statistic="sum", bins=[binX, binY])[0]
-        binsU_weighted_2D = np.divide(binsU_weighted_2D, binsDen, out = np.zeros_like(binsU_weighted_2D), where = binsDen != 0)
+    return np.array(all_cloud_orientation), np.array(all_b_field_orientation), \
+        np.array(all_mcf), np.array(all_mcf_bin), np.array(all_mcf_slope), np.array(all_mcf_area), \
+        np.array(all_aspect_ratio), np.array(all_cloud_masses), \
+        np.array(all_min_den), np.array(all_max_den), \
+        np.array(binned_den), np.array(
+            all_stoke_Q_map), np.array(all_stoke_U_map)
 
 
-        # Phi Map
-        binsPhi_weighted_2D = 0.5*np.arctan2(binsU_weighted_2D, binsQ_weighted_2D)
-        connectedIndex = connectedStructure(binsDen)
+if __name__ == "__main__":
 
-        # turn binned data into cooridinates.
-        xCoor = X[connectedIndex > 0]
-        yCoor = Y[connectedIndex > 0]
-        dCoor = binsDen[connectedIndex > 0]
-
-        stoke_phi_weighted_2D_Coor = binsPhi_weighted_2D[connectedIndex > 0]
-        stoke_U_weighted_2D_Coor = binsU_weighted_2D[connectedIndex > 0]
-        stoke_Q_weighted_2D_Coor = binsQ_weighted_2D[connectedIndex > 0]
-
-
-        # Calculate mass above star formation threshold
-        cloud_mass = np.sum(binsDen[binsDen >= cloud_threshold])*dx**2
-        dense_mass = (np.sum(binsDen[binsDen >= dense_threshold])*dx**2 for dense_threshold in dense_thresholds)
-        
-        cloud_masses += [cloud_mass]
-        for dms, dm in zip(dense_masses, dense_mass):
-            dms += [dm]
-        
-
-        # weighted magnetic field phi
-        stoke_phi_weighted_2D = calcStoke_Phi(np.sum(stoke_U_weighted_2D_Coor*dCoor)/np.sum(dCoor),
-                                              np.sum(stoke_Q_weighted_2D_Coor*dCoor)/np.sum(dCoor))
-        
-        bOri_weighted_2D += [stoke_phi_weighted_2D]
-
-        # # B field in given projection
-        bPOS_weighted_2D = np.array([np.cos(bOri_weighted_2D[-1]), np.sin(bOri_weighted_2D[-1])])
-        
-        # # PCA cloud orientation.
-        val, vec = calcComponentsWeighted(xCoor, yCoor, dCoor)
-        majVec = vec[0]*np.sqrt(val[0])
-        minVec = vec[1]*np.sqrt(val[1])
-        aspectRatio += [np.sqrt(val[0]/val[1])]
-
-        # Save cloud orientation and dimension
-        cloudPhi = calcStoke(*majVec)[3]
-        cloudOri += [cloudPhi]
-
-        
-        # MCF
-        bins = np.linspace(0, 150000, int(10e5)+1) * dx
-        
-        mcf, mcfBins = calcMCF(dCoor, bins, 0)
-        slope, area = calcMCFSlopeAndArea(mcf, mcfBins)
-        # print(f"{slope:.7f}, {1/area:.7f}")
-        
-        mcfSlope += [slope]
-        mcfArea += [area]
-        min_den += [np.min(dCoor)]
-        max_den += [np.max(dCoor)]
-
-    return np.array(cloudOri), np.array(bOri_weighted_2D), \
-           np.array(mcfArea), np.array(mcfSlope), np.array(aspectRatio), \
-           min_den, max_den, cloud_masses, dense_masses
-    
-
-if __name__=="__main__":
-    
-    main(sys.argv[1:])
+    # 2022-04-11
+    main('../h5_max_contour/g1040_0016_binary_search.h5', 100, 'fib')
+    main('../h5_max_contour/g1041_9015_by_mass.h5', 100, 'fib')

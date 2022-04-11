@@ -7,14 +7,14 @@
 import copy
 import numpy as np
 import h5py
-from typing import List
+from typing import List, Tuple
 
 
 def calc_connected_structure_3d(
     data: np.ndarray,
     start_i: int, start_j: int, start_k: int, threshold: float,
     indices: any, min_threshold: float
-) -> tuple(List[int], List(int), List(int), np.ndarray):
+) -> Tuple[List[int], List[int], List[int], np.ndarray]:
     """
 
         given bondory index, threshold, connected indices.
@@ -117,7 +117,7 @@ def calc_connected_structure_3d(
 
 def get_boundary_index_3d(
     data: np.ndarray, threshold: float
-) -> tuple(np.ndarray, float):
+) -> Tuple[np.ndarray, float]:
     """
         Naively calculate the contour by the maximum boundary value (maximum value on the cube surface):
 
@@ -133,7 +133,7 @@ def get_boundary_index_3d(
 
 def binary_search_bondory_3d(
     data: np.ndarray, min_threshold: float, max_threshold: float
-) -> tuple(np.ndarray, float):
+) -> Tuple[np.ndarray, float]:
     """
     Binary search for the density threshold.
 
@@ -219,7 +219,7 @@ def binary_search_bondory_3d(
 
 def binary_search_bondory_by_mass_3d(
     data: np.ndarray, min_threshold: float, max_threshold: float, target_mass: float
-) -> tuple(np.ndarray, float):
+) -> Tuple[np.ndarray, float]:
     """
     Binary search for the density threshold by mass.
 
@@ -324,6 +324,150 @@ def binary_search_bondory_by_mass_3d(
     return indices, threshold
 
 
+def main(file: str, method: str, **kwargs: any) -> None:
+    """
+        main function of the current script.
+
+        :param file: input file.
+        :param method: either be 'by-mass', 'by-density', 'binary-search', or 'naive'.
+        :param **kargs:
+
+            if method == 'by-mass':
+                :param target_mass:     target mass value
+                :param min_threshold:   minimum density for binary search 
+                :param max_threshold:   maximum density for binary search 
+
+            if method == 'by-density':
+                :param threshold:       threshold density
+
+            if method == 'binary-search':
+                :param min_threshold:   minimum density for binary search 
+                :param max_threshold:   maximum density for binary search 
+
+            if method == 'naive':
+                :param threshold:       threshold density
+
+         :return:                       none
+    """
+
+    methods = ['by-mass', 'by-density', 'binary-search', 'naive']
+    if method not in methods:
+        print(f"method should be in `{'`, `'.join(methods)}`.")
+
+    print(f"Reading file {file} {method} - {kwargs}")
+
+    # directly read Scorpio output data.
+    with h5py.File(file, 'r') as data:
+        # data dimension.
+        nbuf = data['nbuf'][0].astype(int)
+        nx, ny, nz = data['nMesh'][:].astype(int)
+
+        # density
+        density = data['den'][nbuf:(nz + nbuf),
+                              nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
+        # momentum
+        momx = data['momx'][nbuf:(nz + nbuf),
+                            nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
+        momy = data['momy'][nbuf:(nz + nbuf),
+                            nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
+        momz = data['momz'][nbuf:(nz + nbuf),
+                            nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
+        # magnetic field
+        bx = 0.5*(data['bxr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
+                  data['bxl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
+        by = 0.5*(data['byr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
+                  data['byl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
+        bz = 0.5*(data['bzr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
+                  data['bzl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
+        # cooridinates
+        x = data['xc1'][nbuf:(nx + nbuf)]
+        y = data['xc2'][nbuf:(ny + nbuf)]
+        z = data['xc3'][nbuf:(nz + nbuf)]
+        # time
+        t = data['t'][:]
+
+    # calculate cooridinates.
+    Y, Z, X = np.meshgrid(y, z, x)
+
+    # initialize the output variables
+    index: np.ndarray = None
+    threshold: float = None
+
+    # check which version for the calculation.
+    if method == 'by-mass':
+        # 9-4-2022 serch for threshold that gives target mass #############
+        # use this line if needed to find the boundary.
+
+        target_mass = kwargs['target_mass']
+        min_threshold = kwargs['min_threshold']
+        max_threshold = kwargs['max_threshold']
+
+        index, threshold = binary_search_bondory_by_mass_3d(
+            density, min_threshold, max_threshold, target_mass=target_mass)
+        ###################################################################
+
+    elif method == 'by-density':
+        # 8-4-2022 ########################################################
+        # start index.
+        i, j, k = np.unravel_index(density.argmax(), density.shape)
+        threshold = kwargs['threshold']
+
+        # i_bdry, j_bdry, k_bdry: index for saving the boundary, useless in this case
+        i_bdry, j_bdry, k_bdry, index = \
+            calc_connected_structure_3d(density, [i], [j], [k],
+                                        threshold=threshold, indices=np.zeros_like(density), min_threshold=threshold)
+        ###################################################################
+        pass
+
+    elif method == 'binary-search':
+        # index for saving the density ####################################
+        # use this line if needed to find the boundary.
+        min_threshold = kwargs['min_threshold']
+        max_threshold = kwargs['max_threshold']
+
+        index, threshold = binary_search_bondory_3d(
+            density, min_threshold, max_threshold)
+        ##################################################################
+
+    elif method == 'naive':
+        threshold = kwargs['threshold']
+        get_boundary_index_3d(density, threshold)
+
+    x_contour = X[index == 1]
+    y_contour = Y[index == 1]
+    z_contour = Z[index == 1]
+
+    den_contour = density[index == 1]
+
+    mx_contour = momx[index == 1]
+    my_contour = momy[index == 1]
+    mz_contour = momz[index == 1]
+
+    bx_contour = bx[index == 1]
+    by_contour = by[index == 1]
+    bz_contour = bz[index == 1]
+
+    # write output file.
+    newFileNAME = file.replace(
+        ".h5", f"_{method.replace('-', '_')}.h5").replace('/h5/', '/h5_max_contour/')
+
+    with h5py.File(newFileNAME, 'w-') as writeData:
+
+        writeData.create_dataset('x', data=x_contour)
+        writeData.create_dataset('y', data=y_contour)
+        writeData.create_dataset('z', data=z_contour)
+        writeData.create_dataset('density', data=den_contour)
+        writeData.create_dataset('momx', data=mx_contour)
+        writeData.create_dataset('momy', data=my_contour)
+        writeData.create_dataset('momz', data=mz_contour)
+        writeData.create_dataset('bx', data=bx_contour)
+        writeData.create_dataset('by', data=by_contour)
+        writeData.create_dataset('bz', data=bz_contour)
+        writeData.create_dataset('threshold', data=threshold)
+        writeData.create_dataset('t', data=t)
+        writeData.close()
+
+
 if __name__ == "__main__":
 
     files = ['./h5/g1040_0016.h5', './h5/g1041_9015.h5']
@@ -335,95 +479,14 @@ if __name__ == "__main__":
     #              886549208.11
     target_mass = [402855975.61866176128387451172]
 
-    for file in files:
-        print("Reading file %s" % file)
+    ################# 2022-04-11 #################
+    # calculate for the parallel cloud
+    # main(file='../h5/g1040_0016.h5', method='binary-search',
+    #      min_threshold=30, max_threshold=35)
 
-        # directly read Scorpio output data.
-        with h5py.File(file, 'r') as data:
-            # data dimension.
-            nbuf = data['nbuf'][0].astype(int)
-            nx, ny, nz = data['nMesh'][:].astype(int)
 
-            # density
-            density = data['den'][nbuf:(nz + nbuf),
-                                  nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
-            # momentum
-            momx = data['momx'][nbuf:(nz + nbuf),
-                                nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
-            momy = data['momy'][nbuf:(nz + nbuf),
-                                nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
-            momz = data['momz'][nbuf:(nz + nbuf),
-                                nbuf:(ny + nbuf), nbuf:(nx + nbuf)]
-            # magnetic field
-            bx = 0.5*(data['bxr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
-                      data['bxl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
-            by = 0.5*(data['byr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
-                      data['byl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
-            bz = 0.5*(data['bzr'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)] +
-                      data['bzl'][nbuf:(nz + nbuf), nbuf:(ny + nbuf), nbuf:(nx + nbuf)])
-            # cooridinates
-            x = data['xc1'][nbuf:(nx + nbuf)]
-            y = data['xc2'][nbuf:(ny + nbuf)]
-            z = data['xc3'][nbuf:(nz + nbuf)]
-            # time
-            t = data['t'][:]
-
-        # calculate cooridinates.
-        Y, Z, X = np.meshgrid(y, z, x)
-        index: np.ndarray = None
-        threshold: float = None
-
-        # # 8-4-2022 ########################################################
-        # # start index.
-        # i, j, k = np.unravel_index(density.argmax(), density.shape)
-        # threshold = thresholds[1]
-        # # index for saving the density
-        # i_bdry, j_bdry, k_bdry, index = calc_connected_structure_3d(density, [i], [j], [k], threshold=threshold, indices=np.zeros_like(density), min_threshold=threshold)
-        # ###################################################################
-
-        # index for saving the density ####################################
-        # use this line if needed to find the boundary.
-        # index, threshold = binary_search_bondory_3d(density, 0, 129)
-        ###################################################################
-
-        # 9-4-2022 serch for threshold that gives target mass #############
-        # use this line if needed to find the boundary.
-        # index, threshold = binary_search_bondory_by_mass_3d(
-        #     density, thresholds[1], 36, target_mass=target_mass[0])
-        ###################################################################
-
-        # take values by index.
-        x_contour = X[index == 1]
-        y_contour = Y[index == 1]
-        z_contour = Z[index == 1]
-
-        den_contour = density[index == 1]
-
-        mx_contour = momx[index == 1]
-        my_contour = momy[index == 1]
-        mz_contour = momz[index == 1]
-
-        bx_contour = bx[index == 1]
-        by_contour = by[index == 1]
-        bz_contour = bz[index == 1]
-
-        # write output file.
-        newFileNAME = file.replace(
-            ".h5", "_data_in_contour_new_contour_by_mass.h5")
-
-        with h5py.File(newFileNAME, 'w-') as writeData:
-
-            writeData.create_dataset('x', data=x_contour)
-            writeData.create_dataset('y', data=y_contour)
-            writeData.create_dataset('z', data=z_contour)
-            writeData.create_dataset('density', data=den_contour)
-            writeData.create_dataset('momx', data=mx_contour)
-            writeData.create_dataset('momy', data=my_contour)
-            writeData.create_dataset('momz', data=mz_contour)
-            writeData.create_dataset('bx', data=bx_contour)
-            writeData.create_dataset('by', data=by_contour)
-            writeData.create_dataset('bz', data=bz_contour)
-            writeData.create_dataset('threshold', data=threshold)
-            writeData.create_dataset('t', data=t)
-            writeData.close()
-    F
+    ################# 2022-04-11 #################
+    # calculate for the perpendicular cloud
+    # main(file='../h5/g1041_9015.h5', method='by-mass',
+    #      target_mass=target_mass[0], min_threshold=32, max_threshold=35)
+ 
