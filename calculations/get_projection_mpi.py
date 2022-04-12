@@ -1,3 +1,9 @@
+"""
+    Do projections for data in the maximum contour
+    
+    Author: Hinny Tsang
+    Last Edit: 2022-04-12
+"""
 from typing import Tuple
 from mpi4py import MPI
 import h5py
@@ -313,13 +319,14 @@ def calc_all_projections(
 
 if __name__ == "__main__":
 
-    # 2022-04-11 ######################################################
-    main('../h5_max_contour/g1040_0016_binary_search.h5', 100, 'fib')
-    main('../h5_max_contour/g1041_9015_by_mass.h5', 100, 'fib')
+    # 2022-04-12 ######################################################
+    # main('../h5_max_contour/g1040_0016_binary_search.h5', 100, 'fib')
+    # main('../h5_max_contour/g1041_9015_by_mass.h5', 100, 'fib')
 
     # main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'fib')
     # main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'fib')
 
-    # main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'ran')
-    # main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'ran')
+    main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'ran')
+    main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'ran')
     ###################################################################
+    pass

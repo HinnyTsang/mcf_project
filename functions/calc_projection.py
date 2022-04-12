@@ -246,7 +246,7 @@ def projection(
     #######################################################################
 
     # TODO MCF calculation ################################################
-    bins = np.linspace(0, 150000, int(10e5)+1) * dx
+    bins = np.linspace(0, 150000, int(10e5)+1) * dx # units of column density
     mcf, mcf_bin = calc_mcf.calc_mcf(den_points, bins, 0)
     mcf_slope, mcf_area, den_10 = calc_mcf.calc_mcf_slope_and_area(mcf, mcf_bin)
     #######################################################################

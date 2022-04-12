@@ -18,15 +18,16 @@ def calc_mcf(density: np.ndarray, bins: np.ndarray, threshold: float, dx: float 
 
     """
 
-    binsMark = 0.5*(bins[1:] + bins[:-1])
+    class_mark = 0.5*(bins[1:] + bins[:-1])
 
     binData = st.binned_statistic(density, density, statistic='sum', bins=bins)
 
     # Mass distribution function
     MDF = binData[0] * dx**2
 
-    MDFCutOff = MDF[binsMark >= threshold]
-    binsCutOff = binsMark[binsMark >= threshold]
+    # Actually useless here, all masses are used.
+    MDFCutOff = MDF[class_mark >= threshold]
+    binsCutOff = class_mark[class_mark >= threshold]
 
     # Accumulate the MDF -> MCF
     MCF = np.add.accumulate(MDFCutOff)
