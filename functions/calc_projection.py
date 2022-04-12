@@ -138,7 +138,7 @@ def reduce_size(data: np.ndarray, n: int) -> np.ndarray:
 # Project sample in the given Vector.
 def projection(
     den: np.ndarray, bx: np.ndarray, by: np.ndarray, bz: np.ndarray,
-    x: np.ndarray, y: np.ndarray, z: np.ndarray, los: List[float]
+    x: np.ndarray, y: np.ndarray, z: np.ndarray,
 ) -> Tuple:
     """
         Similar code in 'get_projection_mpi.py, but less parameters are calculated
@@ -150,8 +150,7 @@ def projection(
         :param x:      1D array of x cooridinates
         :param y:      1D array of y cooridinates
         :param z:      1D array of z cooridinates
-        :param los:    Tuple[losx, losy, losx]
-
+        
         :return:       Tuple of physicals paramters: 
                        (
                         cloud_orientation, b_field_orientation,
