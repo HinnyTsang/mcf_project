@@ -159,7 +159,7 @@ def plot_vertical_distribution_discrete(
         for a, b in zip(den, x_vertical):
             ax.add_patch(Rectangle((x_bottom-a, b-width/2), a, width,
                          facecolor=color, alpha=0.3))
-
+     
 def plot_vertical_distribution_continues(ax, x, y, den, dx, dir='r', color='red', w=0.8, alpha=0.5, fill=True, hatch=None):
 
     den = den.copy()
@@ -177,6 +177,40 @@ def plot_vertical_distribution_continues(ax, x, y, den, dx, dir='r', color='red'
     ax.add_patch(Polygon(xy, facecolor=color,
                  alpha=alpha, fill=fill, hatch=hatch))
 
+def plot_vertical_distribution_continues(
+        ax: plt.Axes,
+        x_bottom: float, x_vertical: np.ndarray, den: np.ndarray,
+        height: float = 0.5, dir: str = 'r', color: str = 'red') -> None:
+    """
+        Plot veritical distribution.
+
+        :param ax:          axs
+        :oaram x_bottom:    bar bottom location
+        :param x_vertical:  bar location
+        :param den:         value of the distribution.
+        :param height:      maximum height of the distribution, default is 0.5
+        :param dir:         direction for the distribution, 'l' or 'r'
+        :param color:       matplotlib color string or RGBA value.
+    """
+
+    # create a copy to prevent modification of the original data.
+    den = den.copy()
+    x_vertical = x_vertical.copy()
+
+    # scale the distribution.
+    den = den*height
+
+    if dir == 'r':
+        den = x_bottom - den
+    else:
+        den = x_bottom + den
+        
+    xy = np.stack([den, x_vertical], -1)
+    
+    ax.add_patch(Polygon(xy, facecolor=color,
+                 alpha=0.5, fill=True, hatch=None))
+    
+       
 
 def plot_statistic_test_discrete(
         x1: np.ndarray, y1: np.ndarray, li1: np.ndarray, bar_coord1: np.ndarray, prob1: np.ndarray, obs1: float,
@@ -296,12 +330,148 @@ def plot_statistic_test_discrete(
     ax2.yaxis.set_minor_locator(plt.NullLocator())
     ax2.tick_params(axis='y', colors=(0.2, 0.2, 0.2))
     
+    # Set y ticks for the likelihood function.
     ax2.set_yticks(np.linspace(0, bottom_scale, 5), labels=[
                    '%.2f' % i for i in np.linspace(0, 1, 5)])
+    ####################################################################
+
+    if out_file:
+        plt.savefig(out_file, dpi=dpi)
+    plt.show()
+
+def plot_statistic_test_continues(
+        x1: np.ndarray, y1: np.ndarray, li1: np.ndarray, bar_coord1: np.ndarray, prob1: np.ndarray, obs1: float,
+        x2: np.ndarray, y2: np.ndarray, li2: np.ndarray, bar_coord2: np.ndarray, prob2: np.ndarray, obs2: float,
+        xlim: Tuple, ylim: Tuple,
+        vert_height: float = 0.6,
+        obs1_std:float= None, obs2_std:float = None,
+        bottom_scale: float=0.4, out_file: str = None,
+        title: str = None, xlabel: str = None, ylabel: str = None, ylabel_likeli:str = None,
+        likeli_label1: str = None, likeli_label2: str = None,
+        obs_label1: str = None, obs_label2: str = None,) -> None:
+    """
+        plot statistical test result.
+
+
+        :param x1:          x value of the first data set.
+        :param y1:          y value of the first data set.
+        :param li1:         relative likelihood of the first data set.
+        :param bar_coord1:  x-value of the probability
+        :param prob1:       probability value of the first data set.
+        :param x2:          x value of the second data set.
+        :param y2:          y value of the second data set.
+        :param li2:         relative likelihood of the second data set.
+        :param bar_coord2:  x-value of the probability
+        :param prob2:       probability value of the second data set.
+        :param xlim:        xlimit for the main plot
+        :param ylim:        ylimit for the main plot
+        :param ylim2:       ylimit for the relative likelihood
+        :param out_file:    full/relative path to the output file.
+    """
+
+    fig, ax1 = plt.subplots()
+
+    # TODO Major plot  #################################################
+    # Scatter plot with error bar
+    ax1.scatter(x1, y1, color='red', marker='o', alpha=0.7, s=5)
+    ax1.scatter(x2, y2, color='blue', marker='o', alpha=0.7, s=5)
+
+    # Horizontal line for observation.
+    if obs_label1:
+        ax1.hlines(obs1, -1, 14,  color='red', ls='solid',
+                   label=obs_label1)
+    else:
+        ax1.hlines(obs1, -1, 14,  color='red', ls='solid')
+
+    if obs_label2:
+        ax1.hlines(obs2, -1, 14,  color='blue', ls='dashed',
+                   label=obs_label2)
+    else:
+        ax1.hlines(obs2, -1, 14,  color='blue', ls='dashed')
+    # sd of the observation.
+    if obs1_std:
+        ax1.vlines(13+0.5, obs1-obs1_std, obs1+obs1_std,  color='red', ls='solid')
+        ax1.hlines(obs1-obs1_std, 13+0.4, 13+0.6, color='red', ls='solid')
+        ax1.hlines(obs1+obs1_std, 13+0.4, 13+0.6, color='red', ls='solid')
+    if obs2_std:
+        ax1.vlines(13, obs2-obs2_std, obs2+obs2_std,  color='blue', ls='solid')
+        ax1.hlines(obs2-obs2_std, 13-.1, 13+0.1, color='blue', ls='solid')
+        ax1.hlines(obs2+obs2_std, 13-.1, 13+0.1, color='blue', ls='solid')
+    # legend for the main plot.
+    if obs_label1 or obs_label2:
+        ax1.legend(loc='upper left')
+    ####################################################################
+
+    # TODO Vertical distribution (Normalize first) #####################
+    prob1 = prob1.copy()
+    prob2 = prob2.copy()
+    prob1 /= np.max([np.max(prob1), np.max(prob2)])
+    prob2 /= np.max([np.max(prob1), np.max(prob2)])
+
+    # vertical distribution one by one
+    for x_bot, prob in zip(x1, prob1):
+        plot_vertical_distribution_continues(
+            ax=ax1, x_bottom=x_bot, x_vertical=bar_coord1, den=prob,
+            height=vert_height, dir='l', color='red')
+
+    for x_bot, prob in zip(x2, prob2):
+        plot_vertical_distribution_continues(
+            ax=ax1, x_bottom=x_bot, x_vertical=bar_coord2, den=prob,
+            height=vert_height, dir='r', color='blue')
+    ####################################################################
+
+    # TODO Set title and axis labels ###################################
+    if title:
+        ax1.set_title(title)
+    if ylabel:
+        ax1.set_ylabel(ylabel)
+    if xlabel:
+        ax1.set_xlabel(xlabel)
+    ax1.set_ylim(*ylim)
+    ax1.set_xlim(*xlim)
+
+    ax1.set_xticks(np.arange(0, 14), ["%d" %
+                   i for i in np.arange(0, 14)])
+    # ax1.set_yticks(np.arange(0, 14), ["%d" %
+    #                i for i in np.arange(0, 14)])
+    ax1.xaxis.set_minor_locator(plt.NullLocator())
+    # ax1.yaxis.set_minor_locator(plt.NullLocator())
+    #####################################################################
+
+    # TODO small plot for relative likelihood ###########################
+    ax2 = ax1.twinx()
+
+    # bar plot for likelihood function
+    w = 0.6  # default bar width.
+    if likeli_label1:
+        ax2.bar(x1+w/4, bottom_scale*li1, label=likeli_label1,
+                width=w/2, color='red', alpha=0.5)
+    else:
+        ax2.bar(x1+w/4, bottom_scale*li1,
+                width=w/2, color='red', alpha=0.5)
+
+    if likeli_label2:
+        ax2.bar(x2-w/4, bottom_scale*li2, label=likeli_label2, width=w/2,
+                edgecolor='blue', alpha=0.5, fill=False, hatch='////', )
+    else:
+        ax2.bar(x2-w/4, bottom_scale*li2, width=w/2,
+                edgecolor='blue', alpha=0.5, fill=False, hatch='////', )
     
-
-        
-
+    if ylabel_likeli:
+        ax2.set_ylabel(ylabel_likeli, labelpad=10, loc='bottom')
+    # Add legend if any labels.
+    if likeli_label1 or likeli_label2:
+        ax2.legend(loc='upper right', ncol=1)
+    # Styling
+    ax2.set_ylim(0, 1)
+    ax2.xaxis.set_minor_locator(plt.NullLocator())
+    ax2.yaxis.set_minor_locator(plt.NullLocator())
+    ax2.tick_params(axis='y', colors=(0.2, 0.2, 0.2))
+    
+    # Set y ticks for the likelihood function.
+    ax2.set_yticks(np.linspace(0, bottom_scale, 5), labels=[
+                   '%.2f' % i for i in np.linspace(0, 1, 5)])
+    ####################################################################
 
     if out_file:
         plt.savefig(out_file, dpi=dpi)
