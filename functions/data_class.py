@@ -197,6 +197,15 @@ class main_data():
     def calc_dgf(self, dense_gas: float, total_cloud_mass: float, contour_cloud_mass: float) -> None:
         """
             calculate the dense gas fraction of the current file
+            
+            From simulation result:
+            
+            para.calc_dgf(dense_gas=4413.0297186780,
+                          total_cloud_mass=11002.1148454371,
+                          contour_cloud_mass=3642.722286)
+            perp.calc_dgf(dense_gas=950.9536251046,
+                          total_cloud_mass=11002.1148454371,
+                          contour_cloud_mass=3642.722489)
 
             :param dense_gas_fraction: The dense gas fraction, 
                                         define as dense mass / total cloud mass * contour cloud mass / projected cloud mass
@@ -220,3 +229,5 @@ def read_data(file: str) -> dict:
     with h5py.File(file, 'r') as data:
         my_data = {key: data[key][()] for key in data.keys()}
     return my_data
+
+

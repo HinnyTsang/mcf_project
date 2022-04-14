@@ -326,7 +326,7 @@ if __name__ == "__main__":
     # main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'fib')
     # main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'fib')
 
-    main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'ran')
-    main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'ran')
+    # main('../h5_max_contour/g1040_0016_binary_search.h5', 10000, 'ran')
+    # main('../h5_max_contour/g1041_9015_by_mass.h5', 10000, 'ran')
     ###################################################################
     pass
