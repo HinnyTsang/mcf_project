@@ -5,7 +5,13 @@ import numpy as np
 from matplotlib.patches import Rectangle, Polygon
 from typing import Dict, List, Tuple
 
+# Default styling
 dpi = 600
+
+plt.rcParams['figure.dpi'] = dpi
+plt.rcParams['savefig.dpi'] = dpi
+plt.style.use(['science','ieee', 'scatter'])
+plt.rcParams['figure.figsize'] = 5,5
 
 
 def plot_mcf_vs_b_offset(
@@ -160,23 +166,6 @@ def plot_vertical_distribution_discrete(
             ax.add_patch(Rectangle((x_bottom-a, b-width/2), a, width,
                          facecolor=color, alpha=0.3))
      
-def plot_vertical_distribution_continues(ax, x, y, den, dx, dir='r', color='red', w=0.8, alpha=0.5, fill=True, hatch=None):
-
-    den = den.copy()
-    y = y.copy()
-
-    den = den*dx
-
-    if dir == 'r':
-        den = x - den
-    else:
-        den = x + den
-
-    xy = np.stack([den, y], -1)
-
-    ax.add_patch(Polygon(xy, facecolor=color,
-                 alpha=alpha, fill=fill, hatch=hatch))
-
 def plot_vertical_distribution_continues(
         ax: plt.Axes,
         x_bottom: float, x_vertical: np.ndarray, den: np.ndarray,
@@ -208,9 +197,7 @@ def plot_vertical_distribution_continues(
     xy = np.stack([den, x_vertical], -1)
     
     ax.add_patch(Polygon(xy, facecolor=color,
-                 alpha=0.5, fill=True, hatch=None))
-    
-       
+                 alpha=0.5, fill=True, hatch=None))  
 
 def plot_statistic_test_discrete(
         x1: np.ndarray, y1: np.ndarray, li1: np.ndarray, bar_coord1: np.ndarray, prob1: np.ndarray, obs1: float,
@@ -477,3 +464,60 @@ def plot_statistic_test_continues(
         plt.savefig(out_file, dpi=dpi)
     plt.show()
 
+def plot_likelihood(
+    x1:np.ndarray, y1:np.ndarray,
+    x2:np.ndarray, y2:np.ndarray,
+    label1:str = None, label2:str=None,
+    title:str=None, xlabel:str=None, ylabel:str=None,
+    out_file:str=None) -> None:
+    """
+    plot total likelihood.
+    """
+    
+    
+    fig, ax = plt.subplots()
+    
+    
+    # width of each bar
+    w = 0.4
+    if label1:
+        ax.bar(x1+w/2, y1 , label = label1, width = w, color = 'red', alpha = 0.5, fill = True,)
+    else:
+        ax.bar(x1+w/2, y1 , width = w, color = 'red', alpha = 0.5, fill = True,)
+    
+    if label2:
+        ax.bar(x2-w/2, y2 , label = label2, width = w, edgecolor = 'blue', alpha = 0.5, fill = False, hatch = '////')
+    else:
+        ax.bar(x2-w/2, y2, width = w, edgecolor = 'blue', alpha = 0.5, fill = False, hatch = '////')
+
+
+    # Text lable for each bar.
+    for x, y, s in zip([x1, x2], [y1, y2], [1, -1]):
+
+        l = ["%.2f" % (i) for i in y]
+
+        for i in range(len(x)):
+            ax.text(x[i]+s*w/2, y[i]+0.015, s = l[i], ha = 'center', rotation = 'vertical', fontsize='small')
+
+    # set ticks
+    ax.set_xticks(np.arange(0, 14), ["%d"%i for i in np.arange(0, 14)])
+    ax.set_yticks(np.arange(0, 14)/10, ["%.2f"% (i/10) for i in np.arange(0, 14)])
+    ax.xaxis.set_minor_locator(plt.NullLocator())
+    ax.set_xlim(-0.5, 13.5)
+    ax.set_ylim(0, 1.07)
+    
+    
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    
+    # set legend
+    if label1 or label2:
+        plt.legend()
+    # save output file        
+    if out_file:
+        plt.savefig(out_file, dpi = dpi)
+    plt.show()
