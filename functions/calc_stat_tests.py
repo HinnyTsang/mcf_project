@@ -10,6 +10,24 @@ import numpy as np
 # from itertools import combinations as comb
 import math
 
+
+def normal(x:np.ndarray, mu: float, sig:float)->np.ndarray:
+    """
+        Normal distribution.
+        :param x:   x
+        :param mu:  mean of the gaussian
+        :param sig: sd of the gaussian
+    """
+    N = 1/np.sqrt(2*np.pi)
+    N /= sig
+    
+    X = (x - mu)/sig
+    X **= 2
+    X /= -2
+    
+    return N * np.exp(X)
+
+
 def comb(n: int,r: int) -> int:
     f = math.factorial
     return f(n) / f(r) / f(n-r)

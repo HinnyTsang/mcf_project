@@ -392,8 +392,8 @@ def plot_statistic_test_continues(
     # TODO Vertical distribution (Normalize first) #####################
     prob1 = prob1.copy()
     prob2 = prob2.copy()
-    prob1 /= np.max([np.max(prob1), np.max(prob2)])
-    prob2 /= np.max([np.max(prob1), np.max(prob2)])
+    prob1 /= np.nanmax([np.nanmax(prob1), np.nanmax(prob2)])
+    prob2 /= np.nanmax([np.nanmax(prob1), np.nanmax(prob2)])
 
     # vertical distribution one by one
     for x_bot, prob in zip(x1, prob1):

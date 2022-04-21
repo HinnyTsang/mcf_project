@@ -102,7 +102,7 @@ def main(para_file: str, perp_file: str, out_folder: str, to_do: list) -> None:
             )
             # TODO save output file.
             out_file = os.path.join(
-                out_path, f"{test_param}_test_{n}_{r}_{n_sample}.h5")
+                out_path, f"{test_param}_test_{n}_{r}.h5")
             print(f"writing output to {out_file}")
 
             with h5py.File(out_file, mode='w') as write_data:
@@ -129,7 +129,7 @@ def main(para_file: str, perp_file: str, out_folder: str, to_do: list) -> None:
             )
             # TODO save output file.
             out_file = os.path.join(
-                out_path, f"{test_param}_test_{n}_{n_sample}.h5")
+                out_path, f"{test_param}_test_{n}.h5")
             print(f"writing output to {out_file}")
 
             with h5py.File(out_file, mode='w') as write_data:
