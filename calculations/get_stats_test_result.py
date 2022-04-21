@@ -276,6 +276,6 @@ if __name__ == "__main__":
     # for test 1
     r1, r2 = 5, 6
 
-    main('../statistic_test_result/fib_100', n1, n2, r1, r2)
-    # main('../statistic_test_result/fib_10000', n1, n2, r1, r2)
-    # main('../statistic_test_result/ran_10000', n1, n2, r1, r2)
+    # main('../statistic_test_result/fib_100', n1, n2, r1, r2)
+    main('../statistic_test_result/fib_10000', n1, n2, r1, r2)
+    main('../statistic_test_result/ran_10000', n1, n2, r1, r2)
