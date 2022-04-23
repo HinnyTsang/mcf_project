@@ -2,7 +2,7 @@
     Calculate the maximum likelihood given the boostrapping sample calculated from 'get_stats_test.py'
 
     Author: Hinny Tsang
-    Last Edit: 2022-04-21
+    Last Edit: 2022-04-23
 """
 import numpy as np
 import os
@@ -26,9 +26,9 @@ mean_mcf_optical, std_mcf_optical = \
 # for test 3.
 # from "../observations/read_observation.ipynb"
 mean_dgf_planck, std_dgf_planck = \
-    -0.84750463013795462874, 0.27234865847532124805
+    -0.84625749795768490102, 0.27082182081083627789
 mean_dgf_optical, std_dgf_optical = \
-    -0.73118733558613902002, 0.27578346005628745496
+    -0.72734920072607889274, 0.27451288585330863024
 
 
 def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
@@ -276,6 +276,6 @@ if __name__ == "__main__":
     # for test 1
     r1, r2 = 5, 6
 
-    # main('../statistic_test_result/fib_100', n1, n2, r1, r2)
+    main('../statistic_test_result/fib_100', n1, n2, r1, r2)
     main('../statistic_test_result/fib_10000', n1, n2, r1, r2)
     main('../statistic_test_result/ran_10000', n1, n2, r1, r2)
