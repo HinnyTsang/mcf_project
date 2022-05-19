@@ -10,7 +10,6 @@ import math
 import scipy.stats as st
 from typing import Union, List, Tuple, TypeVar
 
-from sklearn.metrics import multilabel_confusion_matrix
 import functions.calc_mcf as calc_mcf
 import functions.calc_orientation as calc_ori
 
@@ -303,8 +302,8 @@ def connectedStructure(data):
         nIToCheck = []
         nJToCheck = []
         for i, j in zip(iToCheck, jToCheck):
-            # if (i < 0 or j < 0 or i >= data.shape[0] or j >= data.shape[0]):
-            #     continue
+            if (i < 0 or j < 0 or i >= data.shape[0] or j >= data.shape[0]):
+                continue
             if indices[i][j] or data[i][j] == 0:
                 continue
             else:
