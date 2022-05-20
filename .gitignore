@@ -137,7 +137,8 @@ h5/
 csv/
 statistic_test_result/
 ppt/
-observations/
+observations/obs.txt
+observations/raw
 paper/
 thesis/
 readings/

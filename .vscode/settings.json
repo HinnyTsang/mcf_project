@@ -1,0 +1,6 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.analysis.extraPaths": ["./calculations", "./functions"],
+    "python.linting.pylintArgs": ["--disable={c0103}"]
+}

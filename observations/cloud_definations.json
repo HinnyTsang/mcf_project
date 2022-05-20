@@ -1,0 +1,255 @@
+{
+    "Taurus": {
+        "name": "Taurus",
+        "ra": [
+            3.8,
+            39,
+            16.5
+        ],
+        "dec": [
+            25,
+            52,
+            0
+        ],
+        "size": 500,
+        "distance": 400
+    },
+    "Cr_A": {
+        "name": "Cr A",
+        "ra": [
+            20,
+            -50
+        ],
+        "dec": [
+            -38
+        ],
+        "size": 400,
+        "distance": 310
+    },
+    "Pipe": {
+        "name": "Pipe",
+        "ra": [
+            17,
+            28
+        ],
+        "dec": [
+            -26,
+            56
+        ],
+        "size": 500
+    },
+    "Aquila": {
+        "name": "Aquila",
+        "ra": [
+            18.5,
+            -0
+        ],
+        "dec": [
+            -2
+        ],
+        "size": 450
+    },
+    "Ophiuchus": {
+        "name": "Ophiuchus",
+        "ra": [
+            16,
+            28,
+            6
+        ],
+        "dec": [
+            -24,
+            32.5
+        ],
+        "size": 400,
+        "distance": 460
+    },
+    "Musca": {
+        "name": "Musca",
+        "ra": [
+            12,
+            20,
+            33.4
+        ],
+        "dec": [
+            -72,
+            0,
+            24.2
+        ],
+        "size": 200,
+        "distance": 326
+    },
+    "Orion_A": {
+        "name": "Orion A",
+        "ra": [
+            5,
+            40.3
+        ],
+        "dec": [
+            -7,
+            0
+        ],
+        "size": 450,
+        "distance": 1530
+    },
+    "Orion_B": {
+        "name": "Orion B",
+        "ra": [
+            5.00,
+            38.00,
+            57.66
+        ],
+        "dec": [
+            -1,
+            10.00,
+            -56.39
+        ],
+        "size": 380,
+        "distance": 1370
+    },
+    "IC5146": {
+        "name": "IC 5146",
+        "ra": [
+            21,
+            43,
+            28.7
+        ],
+        "dec": [
+            47,
+            16,
+            1
+        ],
+        "size": 120,
+        "distance": 2500
+    },
+    "Cha_II_III": {
+        "name": "Cha-II-III",
+        "ra": [
+            13,
+            0,
+            4.7
+        ],
+        "dec": [
+            -79,
+            6,
+            55
+        ],
+        "size": 370,
+        "distance": 500
+    },
+    "Cha_I": {
+        "name": "Cha-I",
+        "ra": [
+            11,
+            0,
+            37
+        ],
+        "dec": [
+            -77,
+            -10,
+            40
+        ],
+        "size": 150,
+        "distance": 500
+    },
+    "Cha_I_III": {
+        "name": "Cha-I-III",
+        "ra": [
+            11,
+            30,
+            37
+        ],
+        "dec": [
+            -77,
+            0,
+            40
+        ],
+        "size": 600,
+        "distance": 500
+    },
+    "Lupus_I": {
+        "name": "Lupus-I",
+        "ra": [
+            15,
+            42
+        ],
+        "dec": [
+            -34,
+            3
+        ],
+        "size": 250,
+        "distance": 10
+    },
+    "Lupus_IV": {
+        "name": "Lupus IV",
+        "ra": [
+            16,
+            15
+        ],
+        "dec": [
+            -40,
+            2
+        ],
+        "size": 500
+    },
+    "Lupus_V": {
+        "name": "Lupus V",
+        "ra": [
+            15,
+            42
+        ],
+        "dec": [
+            -34,
+            3
+        ]
+    },
+    "Lupus_III": {
+        "name": "Lupus III",
+        "ra": [
+            15,
+            42
+        ],
+        "dec": [
+            -34,
+            3
+        ],
+        "size": 1000
+    },
+    "Lupus_II_VI": {
+        "name": "Lupus-II-VI",
+        "ra": [
+            16,
+            10
+        ],
+        "dec": [
+            -39
+        ],
+        "size": 1000
+    },
+    "Taurus_B2113": {
+        "name": "Taurus - B211-3",
+        "ra": [
+            4,
+            19,
+            30
+        ],
+        "dec": [
+            27,
+            -20,
+            0
+        ],
+        "size": 150,
+        "distance": 400
+    },
+    "Perseus": {
+        "name": "Perseus",
+        "ra": [
+            3, 35
+        ],
+        "dec": [
+            31,
+            13
+        ],
+        "size": 500,
+        "distance": 400
+    }
+}

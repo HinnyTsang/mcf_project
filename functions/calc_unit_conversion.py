@@ -6,8 +6,9 @@
     
     [code] units is the units using in Scorpio.
 """
-
+from typing import Tuple
 import numpy as np
+
 
 
 # Physical constants
@@ -119,7 +120,7 @@ def extinction_mag_to_column_density_H2_per_cm2(A):
 
 def column_denisty_Msun_per_pc2_to_extinceion_mag(n, mu):
     N = column_den_Msun_per_pc2_to_number_den_H2_per_cm2(n, mu)
-    return column_density_ncc_to_extinction_mag(N)
+    return column_density_H2_per_cm2_to_extinction_mag(N)
 
 
 def extinction_mag_to_column_denisty_Msun_per_pc2(A, mu):
@@ -306,7 +307,7 @@ def time_to_deg(h: float = 0, m: float = 0, s: float = 0) -> float:
     """
         convert time to deg
     """
-    h += m/60 + s/360
+    h += m/60 + s/3600
     deg = h/24*360
 
     return deg
@@ -316,8 +317,35 @@ def dec_to_deg(d: float = 0, m: float = 0, s: float = 0) -> float:
     """
         convert dec angle to deg
     """
-    return d + m/60 + s/360
+    
+    dec = d + m/60 + s/3600
+    
+    # if dec > 90: dec = 360 - dec
+    
+    return dec
 
+# for obsrevation
+def deg_to_time(deg) -> Tuple[float]:
+    """
+        convert time to deg
+    """
+    hrs = deg/360*24
+    h = np.floor(hrs)
+    m = np.floor((hrs - h)*60)
+    s = (hrs - h - m/60) * 3600
+
+    return h, m, s
+
+# for obsrevation
+def deg_to_dec(deg) -> Tuple[float]:
+    """
+        convert dec angle to deg
+    """
+    d = np.floor(deg)
+    m = np.floor((deg - d)*60)
+    s = (deg - d - m/60) * 3600
+
+    return d, m, s
 
 
 
