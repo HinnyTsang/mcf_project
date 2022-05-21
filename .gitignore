@@ -142,3 +142,6 @@ observations/raw
 paper/
 thesis/
 readings/
+
+# VS code setting.
+.vscode/
