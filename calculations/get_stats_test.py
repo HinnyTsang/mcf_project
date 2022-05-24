@@ -4,12 +4,12 @@
     Author: Hinny Tsang
     Last Edit: 2022-04-13
 """
+import os
 import sys
 sys.path.append('..')
-import os
-import h5py
-import functions.data_class as data_class
 import functions.calc_stat_tests as stat_tests
+import functions.data_class as data_class
+import h5py
 
 
 
@@ -58,7 +58,7 @@ def main(para_file: str, perp_file: str, out_folder: str, to_do: list) -> None:
     # TODO do all statistical tests. ############################
     for test_args in to_do:
         test_name = test_args['test']
-        
+
         print(f"Try test {test_name} ...")
 
         # TODO Projection test.
@@ -119,7 +119,9 @@ def main(para_file: str, perp_file: str, out_folder: str, to_do: list) -> None:
 
             # TODO do statistical test.
             print(f"do {test_param} test")
-            result = stat_tests.parameter_test(
+
+            # 05-24-2022 calculate the parameter_test_mean by sample
+            result = stat_tests.parameter_test_normalize_within_sample(
                 n=n,
                 b_offset_para=para['b_offset'],
                 b_offset_perp=perp['b_offset'],
@@ -127,9 +129,19 @@ def main(para_file: str, perp_file: str, out_folder: str, to_do: list) -> None:
                 parameter_perp=perp[test_param],
                 sampling=n_sample
             )
+            # result = stat_tests.parameter_test(
+            #     n=n,
+            #     b_offset_para=para['b_offset'],
+            #     b_offset_perp=perp['b_offset'],
+            #     parameter_para=para[test_param],
+            #     parameter_perp=perp[test_param],
+            #     sampling=n_sample
+            # )
             # TODO save output file.
             out_file = os.path.join(
-                out_path, f"{test_param}_test_{n}.h5")
+                out_path, f"{test_param}_test_{n}_mean_by_sample.h5")
+            # out_file = os.path.join(
+            #     out_path, f"{test_param}_test_{n}.h5")
             print(f"writing output to {out_file}")
 
             with h5py.File(out_file, mode='w') as write_data:
@@ -163,7 +175,7 @@ if __name__ == "__main__":
             'param': 'dgf',
             'n': 12,
             'n_sample': 10000},
-        
+
         # {"test": "parameter",
         #     'param': 'mcf_slope',
         #     'n': 13, 'r': 5,
@@ -184,17 +196,17 @@ if __name__ == "__main__":
     #         'n_sample': 10000}
     # ]
 
-    # data set 1
-    main(para_file='../h5_projected/g1040_0016_binary_search_100_fib/main.h5',
-         perp_file='../h5_projected/g1041_9015_by_mass_100_fib/main.h5',
-         out_folder='fib_100',
-         to_do=test_to_do)
-    # data set 2.
+    # # data set 1
+    # main(para_file='../h5_projected/g1040_0016_binary_search_100_fib/main.h5',
+    #      perp_file='../h5_projected/g1041_9015_by_mass_100_fib/main.h5',
+    #      out_folder='fib_100',
+    #      to_do=test_to_do)
+    # # data set 2.
     # main(para_file='../h5_projected/g1040_0016_binary_search_10000_fib/main.h5',
     #      perp_file='../h5_projected/g1041_9015_by_mass_10000_fib/main.h5',
     #      out_folder='fib_10000',
     #      to_do=test_to_do)
-    # data set 3.
+    # # # data set 3.
     # main(para_file='../h5_projected/g1040_0016_binary_search_10000_ran/main.h5',
     #      perp_file='../h5_projected/g1041_9015_by_mass_10000_ran/main.h5',
     #      out_folder='ran_10000',
