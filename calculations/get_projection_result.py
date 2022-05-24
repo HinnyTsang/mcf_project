@@ -67,6 +67,7 @@ if __name__ == "__main__":
         ['g1040_0016_binary_search_10000_ran', 'g1041_9015_by_mass_10000_ran']
     ]
     
+    # for figures.
     out_paths = ['fib_100', 'fib_10000', 'ran_10000']
     
     main(projection_path, versions, out_paths)
