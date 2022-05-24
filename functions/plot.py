@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib.patches import Rectangle, Polygon
 from typing import Dict, List, Tuple
 
+
 # Default styling
 dpi = 600
 
@@ -12,6 +13,7 @@ plt.rcParams['figure.dpi'] = dpi
 plt.rcParams['savefig.dpi'] = dpi
 plt.style.use(['science','ieee', 'scatter'])
 plt.rcParams['figure.figsize'] = 5,5
+plt.rcParams["text.usetex"] = False
 
 # TODO For projected parameters ##################
 # See check_projection.ipynb
