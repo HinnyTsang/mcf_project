@@ -31,7 +31,7 @@ mean_dgf_optical, std_dgf_optical = \
     -0.72734920072607889274, 0.27451288585330863024
 
 
-def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
+def main(data_path: str, n1: int, n2: int, r1: int, r2: int, ext: str = ''):
     """
         ploting the outputfile for the stats-test.
 
@@ -58,7 +58,7 @@ def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
         # file path and output path
         proj_file_1 = f"{tests[0]}_{n1}.h5"  # file for planck's data
         proj_file_2 = f"{tests[0]}_{n2}.h5"  # file for optical data.
-        out_file = f"{tests[0]}.png"
+        out_file = f"{tests[0]}{ext}.png"
 
         # Read data
         proj_1 = data_class.read_data(os.path.join(data_path, proj_file_1))
@@ -97,9 +97,9 @@ def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
         print("plotting for test 2")
 
         # file path and output path
-        mcf_slope_file_1 = f"{tests[1]}_{n1}.h5"  # file for planck's data
-        mcf_slope_file_2 = f"{tests[1]}_{n2}.h5"  # file for optical data.
-        out_file = f"{tests[1]}.png"
+        mcf_slope_file_1 = f"{tests[1]}_{n1}{ext}.h5"  # file for planck's data
+        mcf_slope_file_2 = f"{tests[1]}_{n2}{ext}.h5"  # file for optical data.
+        out_file = f"{tests[1]}{ext}.png"
 
         # Read data
         mcf_slope_1 = data_class.read_data(
@@ -171,9 +171,9 @@ def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
         print("plotting for test 3")
 
         # file path and output path
-        dgf_slope_file_1 = f"{tests[2]}_{n1}.h5"  # file for planck's data
-        dgf_slope_file_2 = f"{tests[2]}_{n2}.h5"  # file for optical data.
-        out_file = f"{tests[2]}.png"
+        dgf_slope_file_1 = f"{tests[2]}_{n1}{ext}.h5"  # file for planck's data
+        dgf_slope_file_2 = f"{tests[2]}_{n2}{ext}.h5"  # file for optical data.
+        out_file = f"{tests[2]}{ext}.png"
 
         # Read data
         dgf_1 = data_class.read_data(
@@ -246,7 +246,7 @@ def main(data_path: str, n1: int, n2: int, r1: int, r2: int):
         print("plotting for total likelihood")
         
         # output file
-        out_file = 'total_likelihood.png'
+        out_file = f'total_likelihood{ext}.png'
 
         # total likelihood
         likeli_1 = likeli_proj_1*likeli_mcf_1*likeli_dgf_1
@@ -276,6 +276,6 @@ if __name__ == "__main__":
     # for test 1
     r1, r2 = 5, 6
 
-    main('../statistic_test_result/fib_100', n1, n2, r1, r2)
-    # main('../statistic_test_result/fib_10000', n1, n2, r1, r2)
-    # main('../statistic_test_result/ran_10000', n1, n2, r1, r2)
+    # main('../statistic_test_result/fib_100', n1, n2, r1, r2, '_mean_by_sample')
+    # main('../statistic_test_result/fib_10000', n1, n2, r1, r2, '_mean_by_sample')
+    main('../statistic_test_result/ran_10000', n1, n2, r1, r2, '_mean_by_sample')
